@@ -1,6 +1,8 @@
-﻿using AIProject;
+﻿using AIChara;
+using AIProject;
 using AIProject.Definitions;
 using CharaCustom;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -41,7 +43,7 @@ namespace AgentTrainer
 		);
 		static Rect dragRect = new Rect(0f, 0f, WIDTH, 20f);
 
-		GUIStyle labelStyle;
+		GUIStyle sectionLabelStyle;
 		GUIStyle selectedButtonStyle;
 
 		readonly Dictionary<Desire.Type, int> desireTable = typeof(Desire).GetField(
@@ -63,9 +65,9 @@ namespace AgentTrainer
 			if (!visible)
 				return;
 
-			if (labelStyle == null)
+			if (sectionLabelStyle == null)
 			{
-				labelStyle = new GUIStyle(GUI.skin.label)
+				sectionLabelStyle = new GUIStyle(GUI.skin.label)
 				{
 					fontStyle = FontStyle.Bold
 				};
@@ -183,7 +185,7 @@ namespace AgentTrainer
 			if (controller.agent == null)
 				return;
 
-			GUILayout.Label("Stats", labelStyle);
+			GUILayout.Label("Stats", sectionLabelStyle);
 
 			Dictionary<int, float> stats = controller.agent.AgentData.StatsTable;
 
@@ -206,7 +208,7 @@ namespace AgentTrainer
 
 		void Draw_Sliders_Flavors()
 		{
-			GUILayout.Label("Flavors", labelStyle);
+			GUILayout.Label("Flavors", sectionLabelStyle);
 
 			Dictionary<int, int> flavors = controller.ChaControl.fileGameInfo.flavorState;
 
@@ -237,7 +239,7 @@ namespace AgentTrainer
 
 			GUILayout.BeginVertical(GUILayout.Width(ENTRY_WIDTH));
 			{
-				GUILayout.Label("Desires", labelStyle);
+				GUILayout.Label("Desires", sectionLabelStyle);
 
 				Dictionary<int, float> desires = controller.agent.AgentData.DesireTable;
 
@@ -273,31 +275,113 @@ namespace AgentTrainer
 			Draw_Sliders_Desires();
 		}
 
-		void Draw_Content_Info()
+		float Draw_Info_Slider(string label,
+							   float value,
+							   float min,
+							   float max,
+							   Func<float, string> func = null)
+		{
+			GUILayout.BeginHorizontal();
+			{
+				label = $"{label}:\n";
+
+				if (func != null)
+					label += func(value);
+				else
+					label += value;
+
+				GUILayout.Label(label, GUILayout.Width(LABEL_WIDTH));
+
+				value = GUILayout.HorizontalSlider(value, min, max);
+			}
+			GUILayout.EndHorizontal();
+
+			//GUILayout.Label(func != null ? func(value) : $"{value}", GUILayout.Width(LABEL_WIDTH));
+
+			return value;
+		}
+
+		void Draw_Info_Sliders()
+		{
+			ChaFileGameInfo fileGameInfo = controller.ChaControl.fileGameInfo;
+			Dictionary<int, string> lifestyles = Lifestyle.LifestyleName;
+
+			GUILayout.BeginVertical(GUILayout.Width(ENTRY_WIDTH));
+			{
+				GUILayout.Label("Sliders", sectionLabelStyle);
+
+				int phase = (int)Draw_Info_Slider(
+					"Hearts",
+					fileGameInfo.phase,
+					0,
+					3,
+					v => (int)v + 1 + " Heart(s)"
+				);
+
+				if (phase != fileGameInfo.phase)
+					fileGameInfo.phase = phase;
+
+				int lifestyle = (int)Draw_Info_Slider(
+					"Lifestyle",
+					fileGameInfo.lifestyle,
+					-1,
+					lifestyles.Count - 1,
+					v => (int)v == -1 ?
+							"None" :
+							lifestyles.ContainsKey((int)v) ?
+								lifestyles[(int)v] :
+								"Unknown"
+				);
+
+				if (lifestyle != fileGameInfo.lifestyle)
+					fileGameInfo.lifestyle = lifestyle;
+
+				int favoritePlace = (int)Draw_Info_Slider(
+					"Favorite Place",
+					fileGameInfo.favoritePlace,
+					0,
+					11
+				);
+
+				if (favoritePlace != fileGameInfo.favoritePlace)
+					fileGameInfo.favoritePlace = favoritePlace;
+			}
+			GUILayout.EndVertical();
+		}
+
+		void Draw_Info_Texts()
 		{
 			if (controller.agent == null)
 				return;
 
-			GUILayout.BeginVertical();
+			AgentActor agent = controller.agent;
+			PlayerActor player = Manager.Map.Instance.Player;
+			Vector3 pos = controller.agent.Position;
+
+			Sickness sick = agent.AgentData.SickState;
+			string meds = sick.UsedMedicine ? "; Medicated" : "";
+			double duration = sick.Duration.TotalSeconds;
+			string time = duration > 0 ? $"; {duration.ToString()}s" : "";
+
+			GUILayout.Label("Info", sectionLabelStyle);
+
+			GUILayout.BeginVertical(GUILayout.Width(ENTRY_WIDTH));
 			{
-				AgentActor agent = controller.agent;
-				PlayerActor player = Manager.Map.Instance.Player;
-				Vector3 pos = controller.agent.Position;
-
-				GUILayout.Label($"Location: {(int)pos.x}, {(int)pos.y}, {(int)pos.z}");
-				GUILayout.Label($"Distance to Player: {(int)Vector3.Distance(player.Position, pos)}");
-				GUILayout.Label($"Speed: {agent.NavMeshAgent.speed}");
-				GUILayout.Label($"Phase: {agent.ChaControl.fileGameInfo.phase + 1} heart(s)");
-				GUILayout.Label($"State: {agent.StateType.ToString()}");
-
-				Sickness sick = agent.AgentData.SickState;
-				string meds = sick.UsedMedicine ? "; Medicated" : "";
-				double duration = sick.Duration.TotalSeconds;
-				string time = duration > 0 ? $"; {duration.ToString()}s" : "";
-
-				GUILayout.Label($"Sickness: {sick.Name}{time}{meds}");
+				GUILayout.Label($"Location:\n{(int)pos.x}, {(int)pos.y}, {(int)pos.z}");
+				GUILayout.Label($"Distance to Player:\n{(int)Vector3.Distance(player.Position, pos)}");
+				GUILayout.Label($"Speed:\n{agent.NavMeshAgent.speed}");
+				GUILayout.Label($"Total Flavor:\n{controller.ChaControl.fileGameInfo.totalFlavor}");
+				GUILayout.Label($"State:\n{agent.StateType.ToString()}");
+				GUILayout.Label($"Desire:\n{agent.Mode.ToString()}");
+				GUILayout.Label($"Sickness:\n{sick.Name}{time}{meds}");
 			}
 			GUILayout.EndVertical();
+		}
+
+		void Draw_Content_Info()
+		{
+			Draw_Info_Sliders();
+			Draw_Info_Texts();
 		}
 
 		void Draw_Entries_Content()
@@ -329,7 +413,7 @@ namespace AgentTrainer
 
 			GUILayout.BeginVertical(GUILayout.ExpandHeight(true));
 			{
-				GUILayout.Label("Tabs", labelStyle);
+				GUILayout.Label("Tabs", sectionLabelStyle);
 
 				for (int i = 0; i < tabs.Count; i++)
 					if (GUILayout.Button(
@@ -350,7 +434,7 @@ namespace AgentTrainer
 		{
 			GUILayout.BeginVertical(GUILayout.ExpandHeight(true));
 			{
-				GUILayout.Label("Agents", labelStyle);
+				GUILayout.Label("Agents", sectionLabelStyle);
 
 				foreach (StatsController controller in controllers)
 				{
