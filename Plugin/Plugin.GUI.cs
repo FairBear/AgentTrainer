@@ -279,24 +279,26 @@ namespace AgentTrainer
 							   float value,
 							   float min,
 							   float max,
-							   Func<float, string> func = null)
+							   Func<float, string> func = null,
+							   bool drawValue = true)
 		{
 			GUILayout.BeginHorizontal();
 			{
-				label = $"{label}:\n";
+				if (drawValue)
+				{
+					label = $"{label}:\n";
 
-				if (func != null)
-					label += func(value);
-				else
-					label += value;
+					if (func != null)
+						label += func(value);
+					else
+						label += value;
+				}
 
 				GUILayout.Label(label, GUILayout.Width(LABEL_WIDTH));
 
 				value = GUILayout.HorizontalSlider(value, min, max);
 			}
 			GUILayout.EndHorizontal();
-
-			//GUILayout.Label(func != null ? func(value) : $"{value}", GUILayout.Width(LABEL_WIDTH));
 
 			return value;
 		}
@@ -345,6 +347,17 @@ namespace AgentTrainer
 
 				if (favoritePlace != fileGameInfo.favoritePlace)
 					fileGameInfo.favoritePlace = favoritePlace;
+
+				GUILayout.Label("Clothes", sectionLabelStyle);
+
+				for (int i = 0; i < CATEGORY.Length; i++)
+				{
+					int curr = controller.ChaControl.fileStatus.clothesState[i];
+					int next = (int)Draw_Info_Slider(CATEGORY[i], curr, 0, 2, drawValue: false);
+
+					if (curr != next)
+						controller.ChaControl.SetClothesState(i, (byte)next);
+				}
 			}
 			GUILayout.EndVertical();
 		}

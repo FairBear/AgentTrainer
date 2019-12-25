@@ -8,6 +8,17 @@ namespace AgentTrainer
 {
 	public partial class AgentTrainer
 	{
+		static readonly string[] CATEGORY = new string[] {
+			"Top",
+			"Bottom",
+			"Bra",
+			"Underwear",
+			"Gloves",
+			"Stockings",
+			"Socks",
+			"Shoes"
+		};
+
 		public static HashSet<StatsController> controllersQueue = new HashSet<StatsController>();
 		public static HashSet<StatsController> controllers = new HashSet<StatsController>();
 		public static HashSet<StatsController> controllersDump = new HashSet<StatsController>();

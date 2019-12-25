@@ -13,7 +13,7 @@ namespace AgentTrainer
 	{
 		const string GUID = "com.fairbair.agenttrainer";
 		const string Name = "Agent Trainer";
-		const string Version = "1.1.0";
+		const string Version = "1.2.0";
 		const string BEHAVIOR = "AgentTrainer.StatsController";
 
 		const string SECTION_GENERAL = "General";
